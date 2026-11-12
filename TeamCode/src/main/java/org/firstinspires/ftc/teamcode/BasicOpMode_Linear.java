@@ -119,12 +119,10 @@ public class BasicOpMode_Linear extends LinearOpMode {
             rightDrive.setPower(rightPower);
 
             // Added: intake control
-            // Right bumper pulls balls in, right trigger pushes them out. Power range is -1.0 to 1.0.
+            // Right bumper pulls balls in. Power range is -1.0 to 1.0.
             double intakePower = 0.0;
             if (gamepad1.right_bumper) {
                 intakePower = 1.0;       // Intake at full speed
-            } else if (gamepad1.right_trigger > 0.5) {
-                intakePower = -1.0;      // Eject at full speed
             }
             leftIntake.setPower(intakePower);
             rightIntake.setPower(intakePower);
