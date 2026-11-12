@@ -31,7 +31,9 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
@@ -56,6 +58,8 @@ public class BasicOpMode_Linear extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor leftDrive = null;
     private DcMotor rightDrive = null;
+    private CRServo leftIntake = null;   // Added: left intake servo (continuous rotation)
+    private CRServo rightIntake = null;  // Added: right intake servo (continuous rotation)
 
     @Override
     public void runOpMode() {
@@ -67,12 +71,19 @@ public class BasicOpMode_Linear extends LinearOpMode {
         // step (using the FTC Robot Controller app on the phone).
         leftDrive  = hardwareMap.get(DcMotor.class, "left_drive");
         rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
+        // Added: intake servos. These names must match the Configuration exactly.
+        leftIntake  = hardwareMap.get(CRServo.class, "left_intake");
+        rightIntake = hardwareMap.get(CRServo.class, "right_intake");
 
         // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
         // Pushing the left stick forward MUST make robot go forward. So adjust these two lines based on your first test drive.
         // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
         leftDrive.setDirection(DcMotor.Direction.REVERSE);
         rightDrive.setDirection(DcMotor.Direction.FORWARD);
+
+        // Added: the intake servos face each other, so one must be reversed.
+        // If the balls move the wrong way during a test, remove this line or move it to leftIntake.
+        rightIntake.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // Wait for the game to start (driver presses START)
         waitForStart();
@@ -81,6 +92,7 @@ public class BasicOpMode_Linear extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
 
+            // Added: hold the left bumper for slow mode (50% speed)
             double speedMultiplier = gamepad1.left_bumper ? 0.5 : 1.0;
             // Setup a variable for each drive wheel to save power level for telemetry
             double leftPower;
@@ -93,7 +105,7 @@ public class BasicOpMode_Linear extends LinearOpMode {
             // - This uses basic math to combine motions and is easier to drive straight.
             double drive = -gamepad1.left_stick_y;
             double turn  =  gamepad1.right_stick_x;
-            // 変更後
+            // Changed: apply the slow-mode multiplier to the drive power
             leftPower    = Range.clip((drive + turn) * speedMultiplier, -1.0, 1.0) ;
             rightPower   = Range.clip((drive - turn) * speedMultiplier, -1.0, 1.0) ;
 
@@ -106,10 +118,22 @@ public class BasicOpMode_Linear extends LinearOpMode {
             leftDrive.setPower(leftPower);
             rightDrive.setPower(rightPower);
 
+            // Added: intake control
+            // Right bumper pulls balls in, right trigger pushes them out. Power range is -1.0 to 1.0.
+            double intakePower = 0.0;
+            if (gamepad1.right_bumper) {
+                intakePower = 1.0;       // Intake at full speed
+            } else if (gamepad1.right_trigger > 0.5) {
+                intakePower = -1.0;      // Eject at full speed
+            }
+            leftIntake.setPower(intakePower);
+            rightIntake.setPower(intakePower);
+
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
             telemetry.addData("Speed Mode", gamepad1.left_bumper ? "Slow (50%)" : "Normal (100%)");
+            telemetry.addData("Intake", intakePower);
             telemetry.update();
         }
     }
